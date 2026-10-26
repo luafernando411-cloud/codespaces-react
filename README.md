@@ -1,70 +1,96 @@
-# GitHub Codespaces ♥️ React
+# Ritmo
 
-Welcome to your shiny new Codespace running React! We've got everything fired up and running for you to explore React.
+Aplicação demonstrativa em React/Vite e Node.js/Express. Inclui dashboard com resumo eleitoral, administração de usuários fictícios e consulta das imagens que originaram os dados. Login, tokens e cadastros ficam em memória; não use este exemplo como autenticação de produção.
 
-You've got a blank canvas to work on from a git perspective as well. There's a single initial commit with the what you're seeing right now - where you go from here is up to you!
+## Estrutura
 
-Everything you do here is contained within this one codespace. There is no repository on GitHub yet. If and when you’re ready you can click "Publish Branch" and we’ll create your repository and push up your project. If you were just exploring then and have no further need for this code then you can simply delete your codespace and it's gone forever.
+```text
+.
+├── server/
+│   ├── data.js         # Equipe demonstrativa e recorte de estados
+│   └── server.js       # API Express na porta 4000
+├── src/
+│   ├── components/     # Navegação, resumo, usuários e análise
+│   ├── App.jsx         # Login e integração com a API
+│   ├── Admin.css       # Estilos do painel administrativo
+│   └── App.test.jsx    # Teste de fluxo React
+├── tests/
+│   └── e2e/            # Testes end-to-end Playwright
+├── img/                # Capturas de referência exibidas na análise
+├── playwright.config.js
+├── index.html
+├── package.json
+└── vite.config.js      # Proxy de /api para o Express
+```
 
-This project was bootstrapped for you with [Vite](https://vitejs.dev/).
+## Executar no Codespaces
 
-## Available Scripts
+Na raiz do projeto, instale as dependências e inicie frontend e backend juntos:
 
-In the project directory, you can run:
+```bash
+npm install
+npm run dev
+```
 
-### `npm start`
+Abra a porta `3000` no navegador do Codespaces. Para executar apenas a API, use `npm run server` (porta `4000`). Qualquer e-mail válido e senha não vazia funcionam no login demonstrativo.
 
-We've already run this for you in the `Codespaces: server` terminal window below. If you need to stop the server for any reason you can just run `npm start` again to bring it back online.
+## Verificação
 
-Runs the app in the development mode.\
-Open [http://localhost:3000/](http://localhost:3000/) in the built-in Simple Browser (`Cmd/Ctrl + Shift + P > Simple Browser: Show`) to view your running application.
+```bash
+npm test -- --run
+npm run build
+npm run test:e2e
+```
 
-The page will reload automatically when you make changes.\
-You may also see any lint errors in the console.
+Para abrir a interface interativa do Playwright:
 
-### `npm test`
+```bash
+npm run test:e2e:ui
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+No Codespaces, abra a porta `9323` para acessar a interface. O Playwright inicia frontend e API automaticamente quando necessário.
 
-### `npm run build`
+## Publicar e validar no GitHub
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+O projeto inclui um workflow de integração contínua em `.github/workflows/ci.yml`. Em cada push ou pull request para a branch principal, ele instala as dependências com `npm ci`, executa os testes unitários, valida o build e roda os testes end-to-end no Chromium. Relatórios e resultados locais do Playwright, dependências, build e arquivos `.env` são ignorados pelo Git; não adicione credenciais ou dados pessoais ao repositório.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Antes de publicar, confira os arquivos que serão enviados:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+git status --short
+git diff --check
+```
 
-## Learn More
+Depois, crie o repositório no GitHub, adicione o remote e envie a branch conforme o fluxo da equipe. O campo `private` em `package.json` impede publicação no npm, mas não impede versionar o projeto no GitHub.
 
-You can learn more in the [Vite documentation](https://vitejs.dev/guide/).
+## Desafios técnicos e soluções
 
-To learn Vitest, a Vite-native testing framework, go to [Vitest documentation](https://vitest.dev/guide/)
+### Alinhamento entre teste e aplicação
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+**Desafio:** o teste apontava para `localhost:3001`, enquanto o Vite serve o frontend na porta `3000`. Além disso, a API Express usa a porta `4000` e precisa estar ativa para os fluxos autenticados.
 
-### Code Splitting
+**Solução:** configurei `baseURL` como `http://127.0.0.1:3000` em `playwright.config.js` e defini `webServer` para iniciar `npm run dev` antes dos testes. Esse script levanta Vite e Express em conjunto; o Vite encaminha as chamadas `/api` para a API na porta `4000`. Assim, o Playwright prepara o ambiente e aguarda o frontend ficar disponível antes de executar os testes.
 
-This section has moved here: [https://sambitsahoo.com/blog/vite-code-splitting-that-works.html](https://sambitsahoo.com/blog/vite-code-splitting-that-works.html)
+### Integração com o runner do Playwright
 
-### Analyzing the Bundle Size
+**Desafio:** o teste original inicializava o Chromium diretamente com `chromium.launch()`, em vez de usar o runner do Playwright. Esse formato não integra o ciclo de execução e a visualização dos testes à interface interativa.
 
-This section has moved here: [https://github.com/btd/rollup-plugin-visualizer#rollup-plugin-visualizer](https://github.com/btd/rollup-plugin-visualizer#rollup-plugin-visualizer)
+**Solução:** adaptei os fluxos para usar `test` e a fixture `page` do Playwright Test. Os arquivos em `tests/e2e/` seguem o padrão `*.spec.js` e são descobertos pelo `testMatch: '**/*.spec.js'`; podem ser executados tanto pelo runner convencional quanto pela UI.
 
-### Making a Progressive Web App
+### Execução da CLI neste ambiente
 
-This section has moved here: [https://dev.to/hamdankhan364/simplifying-progressive-web-app-pwa-development-with-vite-a-beginners-guide-38cf](https://dev.to/hamdankhan364/simplifying-progressive-web-app-pwa-development-with-vite-a-beginners-guide-38cf)
+**Desafio:** neste Codespace, o executável `playwright` não estava disponível em `node_modules/.bin`, apesar de o pacote `@playwright/test` estar instalado.
 
-### Advanced Configuration
+**Solução:** configurei os scripts npm para chamar diretamente `node_modules/@playwright/test/cli.js`. Isso permite executar os testes e abrir a UI sem depender do link binário ausente.
 
-This section has moved here: [https://vitejs.dev/guide/build.html#advanced-base-options](https://vitejs.dev/guide/build.html#advanced-base-options)
+### Acesso à interface no Codespaces
 
-### Deployment
+**Desafio:** a UI precisa escutar numa interface acessível pelo encaminhamento de portas do Codespaces, e não apenas no loopback interno do processo.
 
-This section has moved here: [https://vitejs.dev/guide/build.html](https://vitejs.dev/guide/build.html)
+**Solução:** o script `test:e2e:ui` inicia a UI em `0.0.0.0:9323`. No Codespaces, basta abrir ou encaminhar a porta `9323` para interagir com os testes.
 
-### Troubleshooting
+### Validação do fluxo
 
-This section has moved here: [https://vitejs.dev/guide/troubleshooting.html](https://vitejs.dev/guide/troubleshooting.html)
+Os testes end-to-end cobrem login, contador, chamada à API, busca e filtro de usuários, criação de usuário e visualização dos dados eleitorais. Após a reorganização, `npm run test:e2e` concluiu com **2 testes aprovados**; os testes unitários e o build de produção também passaram. Para repetir a validação, execute os comandos listados em [Verificação](#verificação); para inspecionar e executar os fluxos pela interface, use `npm run test:e2e:ui`.
+
+O recorte numérico da tela foi transcrito manualmente de seis estados legíveis na captura. Revise a imagem original em `img/` antes de reutilizar os valores.

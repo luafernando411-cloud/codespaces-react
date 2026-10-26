@@ -1,0 +1,17 @@
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests/e2e',
+  testMatch: '**/*.spec.js',
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://127.0.0.1:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 30_000,
+  },
+  use: {
+    browserName: 'chromium',
+    baseURL: 'http://127.0.0.1:3000',
+  },
+  workers: 1,
+});
